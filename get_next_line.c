@@ -24,43 +24,38 @@ char	*ft_free(char *stash, char *buf)
 char	*next_stash(char *stash)
 {
 	char	*new_stash;
-	int	len;
-	int	i;
+	int		len;
+	int		i;
 
-	if (!stash)
-	{
-		free(stash);
-		return (0);
-	}
+	if (!stash || ft_strchr(stash, '\n') == NULL)
+		return (free(stash), NULL);
 	len = 0;
-	while(stash[len] && stash[len] != '\n')
+	while (stash[len] && stash[len] != '\n')
 		len++;
-	if (!stash[len])
-	{
-		free(stash);
-		return (0);
-	}
-	new_stash = ft_calloc((ft_strlen(stash) - len + 1), sizeof(char));
-	len = len + 1;
+	new_stash = malloc(sizeof(char) * (ft_strlen(stash) - len + 1));
+	if (!new_stash)
+		return (NULL);
+	len++;
 	i = 0;
-	while(stash[len])
+	while (stash[len])
 		new_stash[i++] = stash[len++];
 	new_stash[i] = '\0';
 	free(stash);
 	return (new_stash);
 }
+
 char	*generate_line(char *stash)
 {
-	char  *line;
-	int  i;
-	size_t len;
+	char	*line;
+	int		i;
 
-	len = 0;
-	if (!stash)
-		return (NULL);
-	while(stash[len] && stash[len] != '\n')
-		len++;
-	line = ft_calloc(len + 2, sizeof(char));
+	i = 0;
+	while (stash[i] && stash[i] != '\n')
+		i++;
+	if (ft_strchr(stash, '\n') == NULL)
+		line = malloc(sizeof(char) * i + 1);
+	else
+		line = malloc(sizeof(char) * i + 2);
 	if (!line)
 		return (NULL);
 	i = 0;
@@ -81,47 +76,39 @@ char	*generate_line(char *stash)
 char	*read_file(int fd, char *stash)
 {
 	char	*buf;
-	int 	read_size;
+	int		read_size;
 
-	//malloc for buf 
-	if (!stash)
-		stash = ft_calloc(1, 1);
-	buf = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
+	buf = malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	if (!buf)
+		return (NULL);
 	read_size = 1;
-	while(read_size > 0 && ft_strchr(stash, '\n') == NULL)
+	while (read_size != 0)
 	{
 		read_size = read(fd, buf, BUFFER_SIZE);
-		if (read_size < 0)
-		{
-			free(buf);
-			return(NULL);
-		}
+		if (read_size < 0 || (!stash && !read_size))
+			return (free(buf), NULL);
 		buf[read_size] = '\0';
 		stash = ft_free(stash, buf);
+		if (ft_strchr(buf, '\n'))
+			break ;
 	}
 	free(buf);
 	return (stash);
 }
 
-char *get_next_line(int fd)
+char	*get_next_line(int fd)
 {
 	static char	*stash;
-	char	*line;
+	char		*line;
 
-	if (fd < 0 || BUFFER_SIZE < 1 || read(fd, 0, 0) < 0)
+	if (fd < 0 || BUFFER_SIZE < 1)
 		return (NULL);
 	stash = read_file(fd, stash);
-	if(!stash)
-	{
-		return(NULL);
-		free(stash);
-	}
+	if (!stash)
+		return (free(stash), NULL);
 	line = generate_line(stash);
-	if(line[0] == '\0')
-	{
-		free(line);
-		return(NULL);
-	}
+	if (line[0] == '\0')
+		return (free(stash), free(line), NULL);
 	stash = next_stash(stash);
 	return (line);
 }
